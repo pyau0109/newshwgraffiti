@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動新聞：在城市留下你的記號</title>
+    <style>
+        :root {
+            --primary-bg: #1a1a1a;
+            --text-color: #f0f0f0;
+            --accent-color: #ff3b3b;
+            --wall-color: #4a4a4a;
+        }
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, "PingFang TC", "微軟正黑體", sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        #app-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #222;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .screen {
+            display: none;
+            padding: 30px;
+            flex: 1;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .screen.active {
+            display: flex;
+        }
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        p.intro {
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 30px;
+            text-align: justify;
+        }
+        .btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .btn:hover {
+            background-color: #e02a2a;
+        }
+        .theme-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .theme-btn {
+            background-color: #333;
+            border: 2px solid #555;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .theme-btn:hover {
+            border-color: var(--accent-color);
+            background-color: #444;
+        }
+        
+        /* Canvas Stage */
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background-color: var(--wall-color);
+            /* 模擬磚牆紋理 */
+            background-image: 
+                linear-gradient(335deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 20%),
+                radial-gradient(circle at 50% 50%, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%);
+            border: 2px solid #111;
+            border-radius: 5px;
+            cursor: crosshair;
+            touch-action: none; /* 防止手機滑動畫布時滾動頁面 */
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .tools {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            background: #111;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .color-picker-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        input[type="color"] {
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+        }
+        
+        /* Name Input Stage */
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 5px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        /* Social Media Stage */
+        .social-card {
+            background: #fff;
+            color: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .social-header {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+        }
+        .username {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .social-image {
+            width: 100%;
+            height: 300px;
+            background-color: var(--wall-color);
+            background-image: linear-gradient(335deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 20%), radial-gradient(circle at 50% 50%, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.4) 100%);
+            object-fit: cover;
+            display: block;
+        }
+        .social-actions {
+            padding: 10px 15px;
+            font-size: 24px;
+            color: #ed4956;
+            display: flex;
+            gap: 15px;
+        }
+        .social-content {
+            padding: 0 15px 15px;
+        }
+        .likes {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .caption {
+            font-size: 14px;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .comments {
+            color: #666;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- 畫面 1：主題選擇 -->
+    <div id="screen-start" class="screen active">
+        <h2>互動體驗：成為街頭寫手</h2>
+        <p class="intro">「從按下噴漆的那一瞬間，我就直接黏住了。」塗鴉，是反抗、是生存，也是藝術。現在，請選擇一個符合你現在心境的塗鴉主題，在虛擬牆面上留下你的專屬記號。</p>
+        <div class="theme-options" id="theme-container">
+            <!-- 按鈕由 JS 生成 -->
+        </div>
+    </div>
+
+    <!-- 畫面 2：塗鴉畫布 -->
+    <div id="screen-draw" class="screen">
+        <h3 id="current-theme-title" style="text-align: center; margin-top:0;"></h3>
+        <div id="canvas-container">
+            <canvas id="graffiti-wall"></canvas>
+        </div>
+        <div class="tools">
+            <div class="color-picker-wrap">
+                <label for="pen-color">噴漆顏色：</label>
+                <input type="color" id="pen-color" value="#ff3b3b">
+            </div>
+            <button class="btn" style="margin-top:0; background:#555;" id="btn-clear">清除重繪</button>
+        </div>
+        <button class="btn" id="btn-finish-draw">完成創作</button>
+    </div>
+
+    <!-- 畫面 3：命名作品 -->
+    <div id="screen-name" class="screen">
+        <h2>為你的心血結晶命名</h2>
+        <p class="intro">在地下塗鴉圈中，寫手常為自己取上專屬的簽名符號（Tag）。這幅作品，你想稱呼它為什麼？</p>
+        <input type="text" id="artwork-name" placeholder="輸入作品名稱或你的 Tag..." maxlength="20">
+        <button class="btn" id="btn-publish">發布至社群</button>
+    </div>
+
+    <!-- 畫面 4：社群發布 -->
+    <div id="screen-social" class="screen">
+        <h2 style="margin-bottom: 10px;">發布成功！</h2>
+        <p style="text-align: center; color: #aaa; margin-top: 0;">你的作品已引起街頭與主流的關注</p>
+        
+        <div class="social-card">
+            <div class="social-header">
+                <div class="avatar">G</div>
+                <div class="username">Graffiti_Creator</div>
+            </div>
+            <img id="final-artwork" class="social-image" src="" alt="塗鴉作品">
+            <div class="social-actions">
+                ♥ 💬 ✈
+            </div>
+            <div class="social-content">
+                <div class="likes" id="random-likes">0 次讚</div>
+                <div class="caption">
+                    <strong class="username">Graffiti_Creator</strong> 
+                    <span id="display-caption"></span>
+                    <br><span style="color:#00376b;">#台灣塗鴉 #街頭文化 #跨域創作</span>
+                </div>
+                <div class="comments">
+                    <strong>CreepyMouse_official</strong> 哇靠，這個東西就是我要的！🔥<br>
+                    <strong>ArtGallery_TW</strong> 期待有機會能在畫廊展出。
+                </div>
+            </div>
+        </div>
+        <button class="btn" onclick="location.reload()">再畫一幅</button>
+    </div>
+</div>
+
+<script>
+    // 新聞提取的主題庫
+    const allThemes = [
+        "反抗權威的發聲", 
+        "主流藝術的碰撞", 
+        "街頭生存之道", 
+        "台式塗鴉自信", 
+        "打破固有框架", 
+        "地下塗鴉精神", 
+        "城市的隱秘角落"
+    ];
+
+    let selectedTheme = "";
+    
+    // 畫布變數
+    const canvas = document.getElementById('graffiti-wall');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+
+    // 畫面切換函數
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    // 初始化：隨機抽取 3 個主題
+    function initThemes() {
+        const shuffled = allThemes.sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, 3);
+        const container = document.getElementById('theme-container');
+        
+        selected.forEach(theme => {
+            const btn = document.createElement('button');
+            btn.className = 'theme-btn';
+            btn.textContent = theme;
+            btn.onclick = () => {
+                selectedTheme = theme;
+                document.getElementById('current-theme-title').textContent = `創作主題：${theme}`;
+                showScreen('screen-draw');
+                resizeCanvas(); // 切換畫面後重設畫布大小
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    // 畫布設定
+    function resizeCanvas() {
+        const container = document.getElementById('canvas-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 8;
+        // 為了讓最終圖片有背景色，先填滿透明度
+        ctx.fillStyle = "rgba(0,0,0,0)"; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    }
+
+    function startDrawing(e) {
+        isDrawing = true;
+        const pos = getMousePos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        ctx.strokeStyle = document.getElementById('pen-color').value;
+        // 添加一點陰影產生噴漆效果
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = ctx.strokeStyle;
+        e.preventDefault();
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        const pos = getMousePos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        e.preventDefault();
+    }
+
+    function stopDrawing() {
+        isDrawing = false;
+        ctx.closePath();
+    }
+
+    // 綁定畫布事件 (支援滑鼠與觸控)
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+
+    canvas.addEventListener('touchstart', startDrawing, {passive: false});
+    canvas.addEventListener('touchmove', draw, {passive: false});
+    canvas.addEventListener('touchend', stopDrawing);
+
+    // 清除畫布
+    document.getElementById('btn-clear').addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    // 完成塗鴉，進入命名
+    document.getElementById('btn-finish-draw').addEventListener('click', () => {
+        showScreen('screen-name');
+    });
+
+    // 發布作品
+    document.getElementById('btn-publish').addEventListener('click', () => {
+        const nameInput = document.getElementById('artwork-name').value.trim() || '無題 (Untitled)';
+        
+        // 將畫布轉為圖片
+        const dataURL = canvas.toDataURL('image/png');
+        document.getElementById('final-artwork').src = dataURL;
+        
+        // 設定社群文案
+        document.getElementById('display-caption').textContent = `《${nameInput}》 — 探討${selectedTheme}。把這個文化帶到眾人眼前，這就是為什麼我塗鴉！`;
+        
+        // 隨機按讚數與分享
+        const likes = Math.floor(Math.random() * 5000) + 100;
+        document.getElementById('random-likes').textContent = `${likes.toLocaleString()} 次讚`;
+
+        showScreen('screen-social');
+    });
+
+    // 啟動程式
+    window.onload = initThemes;
+    window.addEventListener('resize', () => {
+        if(document.getElementById('screen-draw').classList.contains('active')){
+            // 注意：重設大小會清空畫布，實務上可先將影像暫存
+            const temp = canvas.toDataURL();
+            resizeCanvas();
+            const img = new Image();
+            img.src = temp;
+            img.onload = () => ctx.drawImage(img, 0, 0);
+        }
+    });
+
+</script>
+</body>
+</html>
